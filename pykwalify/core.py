@@ -218,13 +218,11 @@ class Core(object):
         then handle it for all cases in a generic way.
         """
         func = rule.func
-
         # func keyword is not defined so nothing to do
         if not func:
             return
 
         found_method = False
-
         for extension in self.loaded_extensions:
             method = getattr(extension, func, None)
             if method:
@@ -558,7 +556,7 @@ class Core(object):
             return
 
         if rule.pattern is not None:
-            res = re.match(rule.pattern, str(value))
+            res = re.match(rule.pattern, value, re.UNICODE)
             if res is None:  # Not matching
                 self.errors.append(SchemaError.SchemaErrorEntry(
                     msg=u"Value '{value}' does not match pattern '{pattern}'. Path: '{path}'",
@@ -591,6 +589,17 @@ class Core(object):
         # Validate timestamp
         if rule.type == "timestamp":
             self._validate_scalar_timestamp(value, path)
+
+        if rule.type == "date":
+            if not is_scalar(value):
+                raise CoreError(u"value is not a valid scalar")
+            try:
+                date_format = rule.format
+            except AttributeError as err:
+                raise CoreError(u"a date is defined in schema without a format")
+            self._validate_scalar_date(value, date_format, path)
+
+
 
     def _validate_scalar_timestamp(self, timestamp_value, path):
         def _check_int_timestamp_boundaries(timestamp):
@@ -653,6 +662,33 @@ class Core(object):
                 timestamp=timestamp_value,
             ))
 
+
+    def _validate_scalar_date(self, date_value, date_format, path):
+        log.debug(u"Validate date : %(value)s : %(format)s : %(path)s" % {'value': date_value,
+                                                                          'format':date_format,
+                                                                          'path': path})
+
+        if not isinstance(date_value, str):
+            self.errors.append(SchemaError.SchemaErrorEntry(
+                msg=u"Not a valid date: date={value} date must be a string not a '{type}'",
+                path=path,
+                value=date_value,
+                type=type(date_value).__name__,
+            ))
+            return False
+
+        import time
+        try:
+            time.strptime(date_value, date_format)
+        except ValueError:
+            self.errors.append(SchemaError.SchemaErrorEntry(
+                msg=u"Not a valid date: date={value} format= {format}. Path:'{path}'",
+                path=path,
+                value=date_value,
+                format=date_format,
+            ))
+
+
     def _validate_range(self, max_, min_, max_ex, min_ex, value, path, prefix):
         """
         Validate that value is within range values.
@@ -705,6 +741,7 @@ class Core(object):
                     value=nativestr(value) if tt['str'](value) else value,
                     prefix=prefix,
                     min_ex=min_ex))
+
 
     def _validate_scalar_type(self, value, t, path):
         log.debug(u" # Core scalar: validating scalar type : %s", t)
