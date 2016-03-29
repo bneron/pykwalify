@@ -31,6 +31,7 @@ class Rule(object):
         self._date = None
         self._format = None
         self._desc = None
+        self._version = None
         self._required = False
         self._type = None
         self._type_class = None
@@ -95,6 +96,14 @@ class Rule(object):
     @desc.setter
     def desc(self, value):
         self._desc = value
+
+    @property
+    def version(self):
+        return self._desc
+
+    @version.setter
+    def version(self, value):
+        self._version = value
 
     @property
     def required(self):
@@ -348,6 +357,7 @@ class Rule(object):
             "type": lambda x, y, z: (),
             "name": self.init_name_value,
             "desc": self.init_desc_value,
+            "version": self.init_version_value,
             "required": self.init_required_value,
             "req": self.init_required_value,
             "pattern": self.init_pattern_value,
@@ -484,6 +494,11 @@ class Rule(object):
         log.debug(u"Init descr value : %s", path)
 
         self.desc = str(v)
+
+    def init_version_value(self, v, rule, path):
+        log.debug(u"Init version value : %s", path)
+
+        self.version = str(v)
 
     def init_required_value(self, v, rule, path):
         log.debug(u"Init required value : %s", path)
